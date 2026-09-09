@@ -667,7 +667,7 @@ else:
 
             if yolo_model:
                 results = yolo_model.predict(frame, conf=0.25, device="cpu", verbose=False)
-                    bike_boxes = []
+            bike_boxes = []
                     st.session_state["spatial_density_accumulator"] *= heatmap_decay
 
                     for box in results[0].boxes.xyxy.cpu().numpy():
