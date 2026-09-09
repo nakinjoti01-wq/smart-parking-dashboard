@@ -669,7 +669,8 @@ else:
                 results = yolo_model.predict(frame, conf=0.25, device="cpu", verbose=False)
             bike_boxes = []
             st.session_state["spatial_density_accumulator"] *= heatmap_decay
-
+            
+            if yolo_model and results and len(results) > 0 and results[0].boxes is not None:
                     for box in results[0].boxes.xyxy.cpu().numpy():
                         bx1, by1, bx2, by2 = map(int, box)
                         cx = (bx1 + bx2) // 2
