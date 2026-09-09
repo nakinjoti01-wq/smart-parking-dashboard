@@ -249,7 +249,7 @@ header [data-testid="stToolbarActions"], header [data-testid="stHeaderActionElem
     border: 1.5px solid rgba(255, 255, 255, 1); padding: 44px 36px; box-shadow: 0 16px 40px rgba(234, 88, 12, 0.08); margin-top: 40px;
 }
 
-/* ปรับแต่ง Video Player ให้มีมุมโค้งมนและเงาสวยงาม */
+/* ปรับแต่ง Video Player ให้มีมุมโค้งมน */
 div[data-testid="stVideo"] video {
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
@@ -547,9 +547,9 @@ else:
 
             @st.cache_resource(show_spinner="กำลังเชื่อมต่อสตรีมวิดีโอ B1 CCTV ความละเอียดสูง...")
             def download_high_fps_video():
-                local_filename = "cctv_ai_result.mp4"
+                local_filename = "cctv_ready.mp4"
                 if not os.path.exists(local_filename):
-                    file_id = "1ixPUObqpqzyFdeTXM7dgJRGfqqeTIKjB"
+                    file_id = "1fVqE0V6qJmzPcZtOHFd54iBU1gY9acKN"
                     gdown.download(id=file_id, output=local_filename, quiet=False)
                 return local_filename
 
