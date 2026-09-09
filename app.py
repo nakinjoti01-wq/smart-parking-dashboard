@@ -629,17 +629,16 @@ else:
         with col_side:
             side_placeholder = st.empty()
 
-        @st.cache_resource(show_spinner="กำลังโหลดไฟล์วิดีโอ CCTV...")
-        def download_cctv_video():
-            local_path = "cctv_demo.mp4"
-            if not os.path.exists(local_path):
-                # นำ FILE_ID ของ cctv_demo.mp4 จาก Google Drive มาใส่ตรงนี้
-                file_id = "ใส่_FILE_ID_ของไฟล์วิดีโอตรงนี้"
+        @st.cache_resource(show_spinner="กำลังดาวน์โหลดไฟล์วิดีโอ B1 CCTV เข้าสู่ระบบ...")
+        def download_large_cctv_video():
+            local_filename = "video_AI_Project_ENG51_1705.mp4"
+            if not os.path.exists(local_filename):
+                file_id = "1YffbvTB6ucij_vPzQfzYsFU4yW-Nj3tO"
                 url = f"https://drive.google.com/uc?id={file_id}"
-                gdown.download(url, local_path, quiet=False)
-            return local_path
+                gdown.download(url, local_filename, quiet=False, fuzzy=True)
+            return local_filename
 
-        video_source = download_cctv_video()
+        video_source = download_large_cctv_video()
         if os.path.exists(video_source):
             cap = cv2.VideoCapture(video_source)
             fps = cap.get(cv2.CAP_PROP_FPS) or 25
