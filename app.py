@@ -83,23 +83,20 @@ st.set_page_config(
 )
 
 # 4. Hardware Acceleration & YOLO11 Pipeline
-DEVICE = 0 if torch.cuda.is_available() else "cpu"
-if DEVICE == 0:
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cuda.matmul.allow_tf32 = True
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 @st.cache_resource(show_spinner=False)
 def initialize_deep_learning_pipeline():
     model_candidates = [
         "runs/detect/sut_model_gpu/weights/best.pt",
         "runs/detect/sut_model/weights/best.pt",
-        "yolo11x.pt",
-        "yolo11n.pt"
+        "yolo11n.pt",
+        "yolo11x.pt"
     ]
     for path in model_candidates:
         if os.path.exists(path):
             net = YOLO(path)
-            if DEVICE == 0:
+            if DEVICE == "cuda":
                 net.to("cuda")
             return net
     return None
@@ -314,17 +311,14 @@ header [data-testid="stToolbarActions"], header [data-testid="stHeaderActionElem
 </style>
 """, unsafe_allow_html=True)
 
-# 8. ฟังก์ชันการจัดการ Authentication (Base64 Encoded - ปลอดภัยสำหรับขึ้น GitHub)
+# 8. ฟังก์ชันการจัดการ Authentication (Base64 Encoded)
 def authenticate_user(input_id: str, input_pwd: str) -> bool:
-    # รหัสที่ผ่านการเข้ารหัส Base64 (ไม่ใช่ Plain text)
     target_id_b64 = "QjY3MDAyMTg="          # B6700218
     target_pwd_b64 = "MTMwOTcwMTI2NDY2MQ=="  # 1309701264661
-
-    # ดึงค่าจริงกลับมาตรวจสอบ
     correct_id = base64.b64decode(target_id_b64.encode()).decode("utf-8")
     correct_pwd = base64.b64decode(target_pwd_b64.encode()).decode("utf-8")
-
     return input_id.strip() == correct_id and input_pwd.strip() == correct_pwd
+
 if not st.session_state["authenticated"]:
     _, col_mid, _ = st.columns([1, 1.1, 1])
     with col_mid:
@@ -642,35 +636,38 @@ else:
             cap = cv2.VideoCapture(video_source)
             fps = cap.get(cv2.CAP_PROP_FPS) or 25
 
-        playback_speed = 1.0
-        frame_delay = 0.01
+            playback_speed = 1.0
+            frame_delay = 0.01
 
-        last_ui_update_time = 0.0
-        last_db_log_time = 0.0
-        last_rendered_flags = None
-        last_rendered_occ = None
+            last_ui_update_time = 0.0
+            last_db_log_time = 0.0
+            last_rendered_flags = None
+            last_rendered_occ = None
 
-        frame_counter = 0
+            frame_counter = 0
 
-        while cap.isOpened() and st.session_state.get("active_tab") == "tab_live":
-            loop_start = time.time()
-            ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                continue
+            while cap.isOpened() and st.session_state.get("active_tab") == "tab_live":
+                loop_start = time.time()
+                ret, frame = cap.read()
+                if not ret:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    continue
 
-            frame_counter += 1
-            if frame_counter % 2 != 0:
-                continue
+                frame_counter += 1
+                if frame_counter % 2 != 0:
+                    continue
 
-            frame = cv2.resize(frame, (960, 540))
+                frame = cv2.resize(frame, (1280, 720))
 
-            if yolo_model:
-                results = yolo_model.predict(frame, conf=0.25, device="cpu", verbose=False)
-            bike_boxes = []
-            st.session_state["spatial_density_accumulator"] *= heatmap_decay
-            
-            if yolo_model and results and len(results) > 0 and results[0].boxes is not None:
+                if yolo_model:
+                    results = yolo_model.predict(frame, conf=0.25, device="cpu", verbose=False)
+                else:
+                    results = None
+
+                bike_boxes = []
+                st.session_state["spatial_density_accumulator"] *= heatmap_decay
+
+                if results and len(results) > 0 and results[0].boxes is not None:
                     for box in results[0].boxes.xyxy.cpu().numpy():
                         bx1, by1, bx2, by2 = map(int, box)
                         cx = (bx1 + bx2) // 2
@@ -680,88 +677,88 @@ else:
                         if 0 <= cx < 1280 and 0 <= cy < 720:
                             cv2.circle(st.session_state["spatial_density_accumulator"], (cx, cy), 35, 1.2, -1)
 
-                    raw_detected_flags = []
-                    for idx, poly in enumerate(SLOT_POLYGONS):
-                        poly_x1, poly_y1, poly_x2, poly_y2 = SLOT_BOUNDS[idx]
-                        is_occ = False
+                raw_detected_flags = []
+                for idx, poly in enumerate(SLOT_POLYGONS):
+                    poly_x1, poly_y1, poly_x2, poly_y2 = SLOT_BOUNDS[idx]
+                    is_occ = False
 
-                        for (cx, cy, bx1, by1, bx2, by2) in bike_boxes:
-                            if not (bx2 >= poly_x1 and bx1 <= poly_x2 and by2 >= poly_y1 and by1 <= poly_y2):
-                                continue
-                            if cv2.pointPolygonTest(poly, (float(cx), float(cy)), False) >= 0:
-                                is_occ = True
-                                break
-                            mid_x = (bx1 + bx2) // 2
-                            if cv2.pointPolygonTest(poly, (float(mid_x), float(by2 - 5)), False) >= 0:
-                                is_occ = True
-                                break
-                            if cv2.pointPolygonTest(poly, (float(bx1 + (bx2 - bx1) // 2), float(by1 + (by2 - by1) // 2)), False) >= 0:
-                                is_occ = True
-                                break
-                        raw_detected_flags.append(is_occ)
+                    for (cx, cy, bx1, by1, bx2, by2) in bike_boxes:
+                        if not (bx2 >= poly_x1 and bx1 <= poly_x2 and by2 >= poly_y1 and by1 <= poly_y2):
+                            continue
+                        if cv2.pointPolygonTest(poly, (float(cx), float(cy)), False) >= 0:
+                            is_occ = True
+                            break
+                        mid_x = (bx1 + bx2) // 2
+                        if cv2.pointPolygonTest(poly, (float(mid_x), float(by2 - 5)), False) >= 0:
+                            is_occ = True
+                            break
+                        if cv2.pointPolygonTest(poly, (float(bx1 + (bx2 - bx1) // 2), float(by1 + (by2 - by1) // 2)), False) >= 0:
+                            is_occ = True
+                            break
+                    raw_detected_flags.append(is_occ)
 
-                    st.session_state["slot_history_deep"].pop(0)
-                    st.session_state["slot_history_deep"].append(raw_detected_flags)
+                st.session_state["slot_history_deep"].pop(0)
+                st.session_state["slot_history_deep"].append(raw_detected_flags)
 
-                    stabilized_flags = []
-                    active_occupied = 0
+                stabilized_flags = []
+                active_occupied = 0
 
-                    for s_idx in range(TOTAL_SLOTS):
-                        true_count = sum(1 for history in st.session_state["slot_history_deep"] if history[s_idx])
-                        false_count = 25 - true_count
+                for s_idx in range(TOTAL_SLOTS):
+                    true_count = sum(1 for history in st.session_state["slot_history_deep"] if history[s_idx])
+                    false_count = 25 - true_count
 
-                        prev_state = st.session_state["current_slot_states"][s_idx]
-                        if not prev_state:
-                            if true_count >= 10:
-                                st.session_state["current_slot_states"][s_idx] = True
-                        else:
-                            if false_count >= 20:
-                                st.session_state["current_slot_states"][s_idx] = False
-
-                        final_is_occ = st.session_state["current_slot_states"][s_idx]
-                        stabilized_flags.append(final_is_occ)
-                        if final_is_occ:
-                            active_occupied += 1
-
-                    if show_cctv_heatmap:
-                        norm_heat = np.clip(st.session_state["spatial_density_accumulator"] / 10.0, 0, 1)
-                        heat_uint8 = (norm_heat * 255).astype(np.uint8)
-                        heat_colored = cv2.applyColorMap(heat_uint8, cv2.COLORMAP_JET)
-                        frame = cv2.addWeighted(frame, 0.65, heat_colored, 0.35, 0)
-
-                    for idx, poly in enumerate(SLOT_POLYGONS):
-                        is_occ = stabilized_flags[idx]
-                        box_color = (0, 0, 255) if is_occ else (0, 255, 0)
-                        cv2.polylines(frame, [poly], isClosed=True, color=box_color, thickness=2)
-
-                    if detect_mode == "🤖 AI Real-Time Model":
-                        final_occ = active_occupied
-                        final_flags = stabilized_flags
+                    prev_state = st.session_state["current_slot_states"][s_idx]
+                    if not prev_state:
+                        if true_count >= 10:
+                            st.session_state["current_slot_states"][s_idx] = True
                     else:
-                        final_occ = occupied_count
-                        final_flags = [i <= occupied_count for i in range(1, TOTAL_SLOTS + 1)]
+                        if false_count >= 20:
+                            st.session_state["current_slot_states"][s_idx] = False
 
-                    final_avail = TOTAL_SLOTS - final_occ
-                    final_rate = (final_occ / TOTAL_SLOTS) * 100
-                    st.session_state["last_occupied"] = final_occ
+                    final_is_occ = st.session_state["current_slot_states"][s_idx]
+                    stabilized_flags.append(final_is_occ)
+                    if final_is_occ:
+                        active_occupied += 1
 
-                    now_ts = time.time()
-                    state_changed = (final_flags != last_rendered_flags) or (final_occ != last_rendered_occ)
-                    if state_changed or (now_ts - last_ui_update_time >= 0.5):
-                        kpi_placeholder.markdown(render_kpi_cards(final_occ, final_avail, final_rate, today_avg_rate), unsafe_allow_html=True)
-                        with map_placeholder.container():
-                            components.html(build_slot_panel_html(final_flags, final_occ, final_avail), height=iframe_height)
-                        with side_placeholder.container():
-                            components.html(build_side_component(final_avail), height=side_height)
+                if show_cctv_heatmap:
+                    norm_heat = np.clip(st.session_state["spatial_density_accumulator"] / 10.0, 0, 1)
+                    heat_uint8 = (norm_heat * 255).astype(np.uint8)
+                    heat_colored = cv2.applyColorMap(heat_uint8, cv2.COLORMAP_JET)
+                    frame = cv2.addWeighted(frame, 0.65, heat_colored, 0.35, 0)
 
-                        last_rendered_flags = list(final_flags)
-                        last_rendered_occ = final_occ
-                        last_ui_update_time = now_ts
+                for idx, poly in enumerate(SLOT_POLYGONS):
+                    is_occ = stabilized_flags[idx]
+                    box_color = (0, 0, 255) if is_occ else (0, 255, 0)
+                    cv2.polylines(frame, [poly], isClosed=True, color=box_color, thickness=2)
 
-                    if now_ts - last_db_log_time >= 60.0:
-                        day_name_str = L["days"][today_weekday]
-                        log_parking_record(day_name_str, current_hour, final_occ, final_avail, final_rate)
-                        last_db_log_time = now_ts
+                if detect_mode == "🤖 AI Real-Time Model":
+                    final_occ = active_occupied
+                    final_flags = stabilized_flags
+                else:
+                    final_occ = occupied_count
+                    final_flags = [i <= occupied_count for i in range(1, TOTAL_SLOTS + 1)]
+
+                final_avail = TOTAL_SLOTS - final_occ
+                final_rate = (final_occ / TOTAL_SLOTS) * 100
+                st.session_state["last_occupied"] = final_occ
+
+                now_ts = time.time()
+                state_changed = (final_flags != last_rendered_flags) or (final_occ != last_rendered_occ)
+                if state_changed or (now_ts - last_ui_update_time >= 0.5):
+                    kpi_placeholder.markdown(render_kpi_cards(final_occ, final_avail, final_rate, today_avg_rate), unsafe_allow_html=True)
+                    with map_placeholder.container():
+                        components.html(build_slot_panel_html(final_flags, final_occ, final_avail), height=iframe_height)
+                    with side_placeholder.container():
+                        components.html(build_side_component(final_avail), height=side_height)
+
+                    last_rendered_flags = list(final_flags)
+                    last_rendered_occ = final_occ
+                    last_ui_update_time = now_ts
+
+                if now_ts - last_db_log_time >= 60.0:
+                    day_name_str = L["days"][today_weekday]
+                    log_parking_record(day_name_str, current_hour, final_occ, final_avail, final_rate)
+                    last_db_log_time = now_ts
 
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cctv_slot.image(frame_rgb, use_container_width=True)
