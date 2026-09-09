@@ -634,8 +634,7 @@ else:
             local_filename = "video_AI_Project_ENG51_1705.mp4"
             if not os.path.exists(local_filename):
                 file_id = "1YffbvTB6ucij_vPzQfzYsFU4yW-Nj3tO"
-                url = f"https://drive.google.com/uc?id={file_id}"
-                gdown.download(url, local_filename, quiet=False, fuzzy=True)
+                gdown.download(id=file_id, output=local_filename, quiet=False)
             return local_filename
 
         video_source = download_large_cctv_video()
