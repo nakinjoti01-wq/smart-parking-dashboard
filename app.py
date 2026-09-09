@@ -642,26 +642,31 @@ else:
             cap = cv2.VideoCapture(video_source)
             fps = cap.get(cv2.CAP_PROP_FPS) or 25
 
-            playback_speed = 2.0
-            frame_delay = (1.0 / fps) / playback_speed
+        playback_speed = 1.0
+        frame_delay = 0.01
 
-            last_ui_update_time = 0.0
-            last_db_log_time = 0.0
-            last_rendered_flags = None
-            last_rendered_occ = None
+        last_ui_update_time = 0.0
+        last_db_log_time = 0.0
+        last_rendered_flags = None
+        last_rendered_occ = None
 
-            while cap.isOpened() and st.session_state["active_tab"] == "tab_live":
-                loop_start = time.time()
-                ret, frame = cap.read()
-                if not ret:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                    continue
+        frame_counter = 0
 
-                frame = cv2.resize(frame, (1280, 720))
+        while cap.isOpened() and st.session_state.get("active_tab") == "tab_live":
+            loop_start = time.time()
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
 
-                if yolo_model:
-                    results = yolo_model.predict(frame, conf=0.30, device=DEVICE, verbose=False)
+            frame_counter += 1
+            if frame_counter % 2 != 0:
+                continue
 
+            frame = cv2.resize(frame, (960, 540))
+
+            if yolo_model:
+                results = yolo_model.predict(frame, conf=0.25, device="cpu", verbose=False)
                     bike_boxes = []
                     st.session_state["spatial_density_accumulator"] *= heatmap_decay
 
