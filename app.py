@@ -2,7 +2,7 @@
 ========================================================================================
 Project: Smart Motorcycle Parking Dashboard (Zone B1)
 Architecture: High-Performance Pre-rendered CCTV Inference Stream (30 FPS Fluid Native Player)
-Features: Real-time Analytics, Precision Spatial ROI Grid, SQLite Persistence & Data Hub
+Features: Clean UI without bike bounding boxes, Precision Spatial ROI Grid, SQLite Data Hub
 ========================================================================================
 """
 
@@ -249,7 +249,6 @@ header [data-testid="stToolbarActions"], header [data-testid="stHeaderActionElem
     border: 1.5px solid rgba(255, 255, 255, 1); padding: 44px 36px; box-shadow: 0 16px 40px rgba(234, 88, 12, 0.08); margin-top: 40px;
 }
 
-/* ปรับแต่ง Video Player ให้มีมุมโค้งมน */
 div[data-testid="stVideo"] video {
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
@@ -323,7 +322,7 @@ else:
         st.markdown("### 📡 Hardware & AI Status")
         st.markdown(f"""
         * **Camera:** `Hikvision 1080p (B1)`
-        * **Pipeline:** `YOLO11 GPU Rendered (30 FPS)`
+        * **Pipeline:** `YOLO11 Clean ROI Stream (30 FPS)`
         * **Daily Avg:** `{today_avg_rate:.1f}%`
         """)
         if st.button(L["logout"], use_container_width=True):
@@ -530,7 +529,6 @@ else:
         col_main, col_side = st.columns([7.2, 2.8]) if "Desktop" in view_mode else (st.container(), st.container())
 
         with col_main:
-            # สถานะ 10 ช่องจอดที่สอดคล้องกับวิดีโอตรวจจับ B1 จริง (SLOT 01,02,04,05,06,07,09 มีรถจอด รวม 7 คัน ว่าง 3 ช่อง)
             live_flags = [True, True, False, True, True, True, True, False, True, False]
             components.html(build_slot_panel_html(live_flags, 7, 3), height=iframe_height)
 
@@ -556,7 +554,6 @@ else:
             video_path = download_high_fps_video()
 
             if os.path.exists(video_path):
-                # เล่นวิดีโอแบบ Native Web Player ลื่น 30 FPS วนซ้ำอัตโนมัติ
                 st.video(video_path, autoplay=True, loop=True, muted=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
